@@ -17,6 +17,7 @@ libtool
 *.log
 m4
 Makefile
+!udunits2-tests/Makefile
 Makefile.in
 make.texi
 .metadata
