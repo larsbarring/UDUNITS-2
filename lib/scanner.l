@@ -264,7 +264,11 @@ per                     [Pp][Ee][Rr]
 }
 
 <DATE_SEEN>{packed_clock}{space}* {
-    yylval.rval = decodeClock((char*)yytext, "%2d%2d%lf");
+    /* Support optional leading sign in {hour} per grammar by widening hour field when signed.
+       Using fixed-width %2d for hour fails on inputs like "+11" (treated as "+1" hour and "1" minute).
+       If a sign is present, read up to 3 chars for hour (sign + 2 digits); else use 2. */
+    const char* fmt = (yytext[0] == '+' || yytext[0] == '-') ? "%3d%2d%lf" : "%2d%2d%lf";
+    yylval.rval = decodeClock((char*)yytext, fmt);
     BEGIN CLOCK_SEEN;
     return CLOCK;
 }
