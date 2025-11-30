@@ -1,0 +1,321 @@
+Here is the unit-syntax understood by the UDUNITS-2 package. Words printed \_Thusly\_ indicate non-terminals; words printed THUSLY indicate terminals; and words printed \<thusly\> indicate lexical elements.
+
+// Main Grammar Structure
+
+        _Unit-Spec_: one of
+                nothing
+                _Shift-Spec_
+
+        _Shift-Spec_: one of
+                _Product-Spec_
+                _Product-Spec_ SHIFT REAL
+                _Product-Spec_ SHIFT INT
+                _Product-Spec_ SHIFT _Timestamp_
+
+        _Product-Spec_: one of
+                _Power-Spec_
+                _Product-Spec_ _Power-Spec_
+                _Product-Spec_ MULTIPLY _Power-Spec_
+                _Product-Spec_ DIVIDE _Power-Spec_
+
+        _Power-Spec_: one of
+                _Basic-Spec_
+                _Basic-Spec_ INT
+                _Basic-Spec_ EXPONENT
+
+        _Basic-Spec_: one of
+                ID
+                "(" _Shift-Spec_ ")"
+                LOGREF _Product-Spec_ ")"      // token includes "<log>(" and base marker; parser provides the closing ")"
+                _Number_
+
+// Lexical Building Blocks
+
+        <space>: one of
+                <sp>
+                U+0009      // horizontal tab
+                U+000D      // carriage return
+                U+000C      // form feed
+                U+000B      // vertical tab
+                // Note: newline (U+000A) is NOT included
+                // Note: non-breaking space (U+00A0) is NOT included
+
+        <sp>:
+                U+0020      // space
+
+        <digit>:
+                [0-9]
+
+        <alpha>:
+                [A-Za-z_]
+                <iso-8859-1-alpha>
+
+        <iso-8859-1-alpha>: one of
+                U+00A0          // non-breaking space (sic!) allowed in identifiers
+                U+00AD          // soft hyphen
+                U+00B0          // degree sign
+                U+00B5          // micro sign
+                U+00C0-U+00D6   // Latin capital letters with diacritics (À-Ö, excluding U+00D7 multiplication sign)
+                U+00D8-U+00F6   // Latin capital and small letters with diacritics (Ø-ö, excluding U+00F7 division sign)
+                U+00F8-U+00FF   // Latin small letters with diacritics (ø-ÿ)
+
+        <alphanum>: one of
+                <alpha>
+                <digit>
+
+// Numbers
+
+        _Number_: one of
+                INT
+                REAL
+
+        INT:
+                [+-]? <digit>+                    // optional sign followed by one or more digits
+
+        REAL:
+                [+-]? <real-value>
+
+        <real-value>: one of
+                <digit>+ <exponent>               // e.g., 5e10, 3E-2
+                <mantissa> <exponent>?            // e.g., 3.14, .5, 2., 3.14e-10
+
+        <mantissa>: one of
+                <digit>+ "."                      // e.g., 2.
+                "." <digit>+                      // e.g., .5
+                <digit>+ "." <digit>+             // e.g., 3.14
+
+        <exponent>:
+                ("e" | "E") [+-]? <digit>+
+
+        // Note: NaN and Inf[inity] are explicitly excluded (cf. PR #136)
+
+// Identifiers
+
+        ID: one of
+                <id>
+                "%"
+                "'"         // single quote
+                "\""        // double quote
+                U+00B0      // degree sign
+                U+00B5      // micro sign
+
+        <id>: one of
+                <alpha>
+                <alpha> <alphanum>* <alpha>
+                // Multi-character identifiers must end with <alpha>, not <digit>
+
+// Operators
+
+        SHIFT:
+                <space>* <shift-op> <space>*
+
+        <shift-op>: one of
+                "@"
+                [Aa][Ff][Tt][Ee][Rr]
+                [Ff][Rr][Oo][Mm]
+                [Ss][Ii][Nn][Cc][Ee]
+                [Rr][Ee][Ff]
+        // IMPLEMENTATION NOTE: While the lexical pattern allows zero preceding space,
+        // word-based shift operators (after, from, since, ref) are only recognized
+        // when preceded by whitespace or delimiter, because otherwise they would be
+        // consumed as part of an identifier. The "@" operator, being non-alphanumeric,
+        // naturally serves as its own delimiter.
+        //
+        // Examples:
+        //   "m since 2000"   → ID("m") SHIFT("since") ...     ✓
+        //   "msince2000"     → ID("msince") INT(2000)          ✓ (not a shift)
+        //   "m@2000"         → ID("m") SHIFT("@") INT(2000)   ✓
+        //   "m @ 2000"       → ID("m") SHIFT("@") INT(2000)   ✓ (same result)
+
+        MULTIPLY: one of
+                "-"         // accepted as multiply operator in running text as per the SI Brochure
+                "."
+                "*"
+                <space>+
+                U+00B7      // centered middot
+
+        DIVIDE:
+                <space>* <divide-op> <space>*
+
+        <divide-op>: one of
+                <sp> PER <sp>      // surrounding space required, cf. PR #135
+                "/"
+
+        PER:
+                [Pp][Ee][Rr]
+
+        EXPONENT: one of
+                <raise-with-int>
+                <utf8-exponent>
+
+        <raise-with-int>:
+                ("^" | "**") INT
+
+        <utf8-exponent>:
+                <utf8-exp-sign>? <utf8-exp-digit>+
+
+        <utf8-exp-sign>: one of
+                U+207A      // superscript plus sign
+                U+207B      // superscript minus sign
+
+        <utf8-exp-digit>: one of
+                U+2070      // superscript zero
+                U+00B9      // superscript one
+                U+00B2      // superscript two
+                U+00B3      // superscript three
+                U+2074      // superscript four
+                U+2075      // superscript five
+                U+2076      // superscript six
+                U+2077      // superscript seven
+                U+2078      // superscript eight
+                U+2079      // superscript nine
+
+// Date/Time Elements
+
+        _Timestamp_: one of
+                DATE
+                DATE Z_TOK
+                DATE CLOCK
+                DATE CLOCK TZ_CLOCK
+                DATE CLOCK Z_TOK
+                DATE CLOCK GMT_TOK
+                DATE CLOCK UTC_TOK
+
+        // VALIDATION PHILOSOPHY FOR DATE/TIME ELEMENTS:
+        // The lexical patterns for date/time components (<month>, <day>, <tod-hour>, <minute>,
+        // <second>, <tz-hour>) are intentionally PERMISSIVE - they accept any appropriate-length
+        // digit sequences. Range validation (e.g., month must be 1-12, hour must be 0-23) is
+        // performed during semantic analysis, not during lexical analysis. This approach:
+        //   - Provides better error messages showing the actual invalid values
+        //   - Maintains clean separation between lexical tokenization and validation
+        //   - Allows consistent error reporting through the parser
+        // Note that a DATE having a <day> within the accepted range 1-31, but outside what is
+        // allowed in the Julian/Gregorian calendar is silently interpreted as the corresponding
+        // day of the next month, e.g., 1999-02-29 (non-leap year) → 1999-03-01, 2004-02-29 (leap
+        // year) stays the same.
+
+        DATE: one of
+                <date-broken> ("T" | <space>*)
+                <date-packed> ("T" | <space>*)
+        // NOTE: The trailing "T" or <space>* is included in the DATE token
+        // NOTE: "T" separator prohibits spaces before CLOCK (ISO 8601 compliance)
+        //       Valid: "2024-06-01T12:00", "2024-06-01 12:00"
+        //       Invalid: "2024-06-01T 12:00" (space after T rejected)
+        // NOTE: Packed dates only return DATE token when appearing after time-related units;
+        //       otherwise parsed as REAL
+
+        <date-broken>:
+                <year> "-" <month> ("-" <day>)?  // allow truncation from the right
+
+        <date-packed>:
+                <year> (<month> <day>)?
+                // Allow truncation from the right:
+                // Length-based interpretation for <date-packed> (not counting a sign):
+                //   len = 1-4  → Y, YY, YYY, YYYY  → YYYY0101
+                //   len = 5    → YYYYM             → YYYY0M01
+                //   len = 6    → YYYYMM            → YYYYMM01
+                //   len = 7    → YYYYMMD           → YYYYMM0D
+                //   len = 8    → YYYYMMDD          → YYYYMMDD
+                //   decimal point and decimals are accepted but then <date-packed> is interpreted as a REAL and not as a DATE
+
+
+
+
+        CLOCK: one of
+                <clock-broken> <space>*
+                <clock-packed> <space>*
+                // NOTE: The trailing <space>* is included in the CLOCK token
+
+        <clock-broken>:
+                <tod-hour> ":" <minute> (":" <second>)?  // allow truncation from the right
+
+        <clock-packed>:
+                <tod-hour> (<minute> (<second>)?)?
+                // Allow truncation from the right:
+                // Length-based interpretation for <clock-packed>.
+                // Length is measured on the INTEGER part (before any decimal point).
+                //   len = 1  → H       → 0H0000   decimals are not allowed
+                //   len = 2  → HH      → HH0000   decimals are not allowed
+                //   len = 3  → HHM     → HH0M00   decimals are not allowed
+                //   len = 4  → HHMM    → HHMM00   decimals are not allowed
+                //   len = 5  → HHMMS   → HHMM0S   decimals accepted: HHMM0S.dddd...
+                //   len = 6  → HHMMSS  → HHMMSS   decimals accepted: HHMMSS.dddd...
+
+        <year>:
+                [+-]? [0-9]{1,4}
+                // Note: year 0 is silently normalized to year 1 because in the Julian
+                // calendar there is no year zero, which is used in the combined
+                // Julian/Gregorian (standard) calendar that UDUNITS follows
+
+        <month>:
+                [0-9]{1,2}
+                // Lexically accepts any 1-2 digit number
+                // Semantic validation: must be 1-12
+
+        <day>:
+                [0-9]{1,2}
+                // Lexically accepts any 1-2 digit number
+                // Semantic validation: must be 1-31
+
+        <tod-hour>:
+                [0-9]{1,2}
+                // Lexically accepts any 1-2 digit number (no sign allowed)
+                // Semantic validation: must be 0-23
+
+        <minute>:
+                [0-9]{1,2}
+                // Lexically accepts any 1-2 digit number
+                // Semantic validation: must be 0-59
+
+        <second>:
+                [0-9]{1,2} (\. <digit>*)?
+                // Lexically accepts any 1-2 digit number with optional decimal
+                // Semantic validation: must be 0-60
+                // NOTE: leap second (= 60) only allowed at 23:59:60
+                // NOTE: leap second is silently interpreted as 00 of the immediately succeeding minute
+
+// Timezone Elements
+
+        TZ_CLOCK: one of
+                <tz-clock-broken>
+                <tz-clock-packed>
+
+        <tz-clock-broken>:
+                <tz-hour> ":" <minute>     // timezone: no seconds; e.g., +11:00, -05:30
+
+        <tz-clock-packed>:
+                <tz-hour> <minute>?        // timezone: no seconds; e.g., +11, -0530
+                // Length-based interpretation after the sign:
+                //   total_len(sign excluded) = 1 → H
+                //   total_len(sign excluded) = 2 → HH
+                //   total_len(sign excluded) = 3 → HHM
+                //   total_len(sign excluded) = 4 → HHMM
+
+        <tz-hour>:
+                [+-][0-9]{1,2}
+                // Lexically accepts sign followed by any 1-2 digit number
+                // Semantic validation: must be ±0 to ±14
+                // NOTE: -00:00 (negative zero) is not allowed
+
+        Z_TOK:
+                "Z"
+
+        GMT_TOK:
+                "GMT"
+
+        UTC_TOK:
+                "UTC"
+
+// Logarithmic Elements
+
+        LOGREF:
+                <log> <space>* "(" <space>* <re> ":"? <space>*   // NOTE: LOGREF token spans through the base marker (e.g., "lg(re" or "ln(re:"), but not the closing ")"
+
+        <log>: one of
+                "log"
+                "lg"
+                "ln"
+                "lb"
+
+        <re>:
+                [Rr][Ee]
