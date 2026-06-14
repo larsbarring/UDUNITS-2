@@ -308,7 +308,7 @@ asciiPrintProduct(
             if (nchar > 0) {
                 n = RETURNS_NAME(getId)
                     ? snprintf(buf+nchar, size, "%s", "-")
-                    : snprintf(buf+nchar, size, "%s", ".");
+                    : snprintf(buf+nchar, size, "%s", " "); // Period not recommended
 
                 if (n < 0) {
                     nchar = n;
