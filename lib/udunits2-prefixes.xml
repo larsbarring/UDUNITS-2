@@ -10,6 +10,12 @@ SI prefixes
 -->
 <unit-system>
     <prefix>
+        <value>1e30</value> <name>quetta</name>	<symbol>Q</symbol>
+    </prefix>
+    <prefix>
+        <value>1e27</value> <name>ronna</name>	<symbol>R</symbol>
+    </prefix>
+    <prefix>
         <value>1e24</value> <name>yotta</name>	<symbol>Y</symbol>
     </prefix>
     <prefix>
@@ -72,5 +78,11 @@ SI prefixes
     </prefix>
     <prefix>
         <value>1e-24</value> <name>yocto</name>	<symbol>y</symbol>
+    </prefix>
+    <prefix>
+        <value>1e-27</value> <name>ronto</name>	<symbol>r</symbol>
+    </prefix>
+    <prefix>
+        <value>1e-30</value> <name>quecto</name>	<symbol>q</symbol>
     </prefix>
 </unit-system>
