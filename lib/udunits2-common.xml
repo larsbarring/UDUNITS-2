@@ -113,8 +113,7 @@ elements appear only within <aliases>.
             <comment>Constant; value is +-30e15</comment>
             <def>6.02214179e23/mol</def>
             <aliases>
-                <name><singular>avogadro_constant</singular></name>
-                <noplural/>
+                <name><singular>avogadro_constant</singular><noplural/></name>
             </aliases>
             <definition>number of constituent particles (usually atoms or molecules) per mole of a given substance</definition>
         </unit>
