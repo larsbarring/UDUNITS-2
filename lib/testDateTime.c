@@ -1702,6 +1702,72 @@ static void test_trailing_text_after_timestamp(void)
     assert_timestamp_reject_msg("2024-01-01QQ", "\"QQ\"");
 }
 
+/*
+ * The separator between a date and a time. Every case below was accepted
+ * before the separators became tokens: a dangling "T" was swallowed into the
+ * DATE token and discarded, and a missing separator was indistinguishable
+ * from an empty one.
+ */
+static void test_date_time_separator(void)
+{
+    /*
+     * A "T" is only meaningful when a time follows it immediately, and each
+     * way of getting that wrong names the separator rather than falling back
+     * to "syntax error": nothing after it, a doubled "T", a zone designator,
+     * whitespace between it and the time, and unrelated trailing text.
+     */
+    assert_timestamp_reject_msg("2024-01-01T",       "followed immediately");
+    assert_timestamp_reject_msg("2024-01-01TT",      "followed immediately");
+    assert_timestamp_reject_msg("2024-01-01TZ",      "followed immediately");
+    assert_timestamp_reject_msg("2024-01-01T ",      "followed immediately");
+    assert_timestamp_reject_msg("2024-01-01T 12:00", "followed immediately");
+    assert_timestamp_reject_msg("2024-01-01T Z",     "followed immediately");
+    assert_timestamp_reject_msg("2024-01-01Tx",      "followed immediately");
+    assert_timestamp_reject_msg("20240101T",         "followed immediately");
+    assert_timestamp_reject_msg("2024-01T",          "followed immediately");
+
+    /* A space before the "T" is likewise rejected, though the separator is
+       never reached, so the message names the text instead. */
+    CU_ASSERT_PTR_NULL(parse_seconds_since("2024-01-01 T12:00"));
+
+    /* A separator is required: a date and a time cannot simply be run
+       together. */
+    CU_ASSERT_PTR_NULL(parse_seconds_since("2024-01-0112:00"));
+    CU_ASSERT_PTR_NULL(parse_seconds_since("2024-01-011200"));
+    CU_ASSERT_PTR_NULL(parse_seconds_since("2024-01-0112"));
+    CU_ASSERT_PTR_NULL(parse_seconds_since("2024-01-0112:00Z"));
+
+    /* The scanner's specific clock diagnostics survive the rejection, in
+       each of the three separator positions. */
+    assert_timestamp_reject_msg("2024-01-0112:345",   "minute field");
+    assert_timestamp_reject_msg("2024-01-01 12:345",  "minute field");
+    assert_timestamp_reject_msg("2024-01-01T12:345",  "minute field");
+    assert_timestamp_reject_msg("2024-01-0125:00",    "Invalid hour 25");
+
+    /* Both separators work, in every date form, and agree. */
+    assert_timestamps_equivalent("2024-01-01T12:00",  "2024-01-01 12:00");
+    assert_timestamps_equivalent("20240101T1200",     "2024-01-01 12:00");
+    assert_timestamps_equivalent("2024-01T12",        "2024-01-01 12:00");
+    assert_timestamps_equivalent("2024-01-01  12:00", "2024-01-01 12:00");
+    assert_timestamps_equivalent("2024-01-01T12:00Z", "2024-01-01 12:00Z");
+
+    /*
+     * A bare date with a zone designator and no time is a different
+     * production and stays valid, with or without whitespace.
+     */
+    assert_timestamps_equivalent("2024-01-01Z",  "2024-01-01");
+    assert_timestamps_equivalent("2024-01-01 Z", "2024-01-01");
+
+    /* Trailing whitespace after a date or a time remains tolerated. */
+    assert_timestamps_equivalent("2024-01-01 ",       "2024-01-01");
+    assert_timestamps_equivalent("2024-01-01 12:00 ", "2024-01-01 12:00");
+
+    /* Optional whitespace before a zone or an offset is unchanged. */
+    assert_timestamps_equivalent("2024-01-01 12:00 Z",   "2024-01-01 12:00Z");
+    assert_timestamps_equivalent("2024-01-01 12:00 +01", "2024-01-01 12:00+01");
+    assert_timestamps_equivalent("2024-01-01 12:00 GMT", "2024-01-01 12:00GMT");
+}
+
 static void test_timezone_diagnostics_are_specific(void)
 {
     assert_timestamp_reject_msg("2024-01-01 00:00 +053",    "lose its sign");
@@ -2001,6 +2067,7 @@ int main(const int argc, const char* const* argv)
     CU_ADD_TEST(s, test_encode_time_channels_agree);
     CU_ADD_TEST(s, test_clock_diagnostics_are_specific);
     CU_ADD_TEST(s, test_trailing_text_after_timestamp);
+    CU_ADD_TEST(s, test_date_time_separator);
     CU_ADD_TEST(s, test_timezone_diagnostics_are_specific);
     CU_ADD_TEST(s, test_ut_check_time_valid);
     CU_ADD_TEST(s, test_ut_check_time_leap_second);
