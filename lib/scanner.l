@@ -672,7 +672,7 @@ idchar       [A-Za-z0-9_]
     return status;
 }
 
-<SHIFT_SEEN>{year_broken}-{month}-{day}(T|{space}*) {
+<SHIFT_SEEN>{year_broken}-{month}-{day} {
     BEGIN DATE_SEEN;
     return decodeDate((char*)yytext, "%d-%d-%d", &yylval.rval);
 }
@@ -684,12 +684,12 @@ idchar       [A-Za-z0-9_]
     return ERR;
 }
 
-<SHIFT_SEEN>{year_broken}-{month}(T|{space}*) {
+<SHIFT_SEEN>{year_broken}-{month} {
     BEGIN DATE_SEEN;
     return decodeDate((char*)yytext, "%d-%d", &yylval.rval);
 }
 
-<SHIFT_SEEN>{packed_date}(T|{space}*) {
+<SHIFT_SEEN>{packed_date} {
     if (_isTime) {
         BEGIN DATE_SEEN;
         return decodePackedDate((char*)yytext, &yylval.rval);
@@ -712,8 +712,8 @@ idchar       [A-Za-z0-9_]
     return ERR;
 }
 
-<DATE_SEEN>{broken_clock}{space}*    |
-<DATE_SEEN>{packed_clock}{space}*    {
+<DATE_SEEN>{broken_clock}    |
+<DATE_SEEN>{packed_clock}    {
     double sec = 0.0;
     if (!decodeClockFlexible((const char*)yytext, &sec, yylval.error_msg)) {
         return ERR;
@@ -820,6 +820,29 @@ idchar       [A-Za-z0-9_]
     snprintf(yylval.error_msg, sizeof(yylval.error_msg),
              "Invalid timezone offset '%s': too many digits (the packed form takes at most 4: +HHMM)", yytext);
     return ERR;
+}
+
+<DATE_SEEN>T/({broken_clock}|{packed_clock}) {
+    /* The ISO 8601 date/time separator. The grammar admits T_SEP only before
+       a CLOCK; the trailing context is not what enforces that, but it lets
+       the rule below give a specific message instead of "syntax error". */
+    return T_SEP;
+}
+
+<DATE_SEEN>T {
+    /* A "T" that does not introduce a time: end of input, a space, a zone
+       designator, or anything else. Rejected either way -- there is no
+       production for it -- but "DATE ERR" carries this message out. */
+    snprintf(yylval.error_msg, sizeof(yylval.error_msg),
+             "The 'T' date/time separator must be followed immediately by a "
+             "time (e.g., '2024-01-01T00:00')");
+    return ERR;
+}
+
+<DATE_SEEN,CLOCK_SEEN>{space}+ {
+    /* Whitespace separating the components of a timestamp. Elsewhere a run
+       of spaces is MULTIPLY; that rule is confined to INITIAL and ID_SEEN. */
+    return SPACE_SEP;
 }
 
 <DATE_SEEN>[zZ] {
