@@ -2057,6 +2057,7 @@ galileanRaise(
     const GalileanUnit*	 galilean;
     ut_unit*             tmp;
     ut_unit*             result = NULL;  /* failure */
+    ut_status            status;
 
     assert(unit != NULL);
     assert(IS_GALILEAN(unit));
@@ -2070,7 +2071,15 @@ galileanRaise(
     if (tmp != NULL) {
         result = galileanNew(pow(galilean->scale, power), tmp, 0);
 
+        /*
+         * ut_free() participates in the status convention and reports its own
+         * success, so calling it here would overwrite any failure status set
+         * by galileanNew().  Preserve the status across the free.
+         */
+        status = ut_get_status();
+
         ut_free(tmp);
+        ut_set_status(status);
     }
 
     return result;
@@ -2098,6 +2107,7 @@ galileanRoot(
     const GalileanUnit*	 galilean;
     ut_unit*             tmp;
     ut_unit*             result = NULL;  /* failure */
+    ut_status            status;
 
     assert(unit != NULL);
     assert(IS_GALILEAN(unit));
@@ -2109,7 +2119,15 @@ galileanRoot(
     if (tmp != NULL) {
         result = galileanNew(pow(galilean->scale, 1.0/root), tmp, 0);
 
+        /*
+         * ut_free() participates in the status convention and reports its own
+         * success, so calling it here would overwrite any failure status set
+         * by galileanNew().  Preserve the status across the free.
+         */
+        status = ut_get_status();
+
         ut_free(tmp);
+        ut_set_status(status);
     }
 
     return result;
