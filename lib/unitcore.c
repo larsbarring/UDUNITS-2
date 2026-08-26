@@ -1837,7 +1837,9 @@ static UnitOps	galileanOps;
  * @param[in] offset	The offset for the new unit.
  * @retval    NULL	Failure.  `ut_get_status()` will be:
  *		          UT_OS	Operating-system error.  See `errno`.
- *		          UT_BAD_ARG  `scale == 0 || unit == NULL`
+ *		          UT_BAD_ARG  `unit == NULL`, or `scale` is zero or not
+ *		                      finite, or the scale or offset of the
+ *		                      resulting unit is not representable
  * @return              The newly-allocated, galilean-unit.
  */
 static ut_unit*
@@ -1848,7 +1850,7 @@ galileanNew(
 {
     ut_unit*	newUnit;
 
-    if (scale == 0 || unit == NULL) {
+    if (scale == 0 || !isfinite(scale) || unit == NULL) {
         ut_set_status(UT_BAD_ARG);
         newUnit = NULL;
     }
@@ -1859,7 +1861,19 @@ galileanNew(
             unit = unit->galilean.unit;
         }
 
-        if (areAlmostEqual(scale, 1) && areAlmostEqual(offset, 0)) {
+        /*
+         * Flattening a Galilean unit onto another multiplies the two scales,
+         * which can overflow or underflow even though the scale supplied was
+         * itself acceptable, and the offset is then computed by dividing by
+         * the combined scale.  Check the results, not just the arguments.
+         */
+        if (scale == 0 || !isfinite(scale) || !isfinite(offset)) {
+            ut_set_status(UT_BAD_ARG);
+            ut_handle_error_message("galileanNew(): "
+                "Scale or offset of the resulting unit is not representable");
+            newUnit = NULL;
+        }
+        else if (areAlmostEqual(scale, 1) && areAlmostEqual(offset, 0)) {
             newUnit = CLONE(unit);
         }
         else {
