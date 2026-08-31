@@ -29,8 +29,16 @@
 #define stricmp _stricmp
 #define isatty _isatty
 
-//We must accommodate the lack of snprintf in versions of MSVC less than 1900.
-//udunits_snprintf is defined in udunits_snprintf.c, in lib/.
+/*
+ * MSVC gained a conforming snprintf() in Visual Studio 2015 (_MSC_VER 1900).
+ * Older versions need the replacement in udunits_snprintf.c.
+ *
+ * The version test matters beyond dead code: this macro is in a public
+ * header, so it rewrites snprintf() in every translation unit that includes
+ * udunits2.h, including those of library users.  udunits_snprintf() is not
+ * exported from the DLL, so each such call fails to link.
+ */
+#if _MSC_VER < 1900
 #define snprintf udunits_snprintf
 
 int udunits_snprintf(
@@ -44,6 +52,7 @@ char* str,
   size_t size,
   const char* format,
   va_list ap);
+#endif
 
 #endif
 

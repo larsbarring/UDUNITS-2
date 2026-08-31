@@ -56,7 +56,12 @@ SET(libudunits2_src converter.c
 
 if(MSVC)
 	SET(libudunits2_src ${libudunits2_src}
-	tsearch.c tsearch.h udunits_snprintf.c)
+	tsearch.c tsearch.h)
+
+	# Only needed before Visual Studio 2015; see lib/udunits2.h.
+	if(MSVC_VERSION LESS 1900)
+		SET(libudunits2_src ${libudunits2_src} udunits_snprintf.c)
+	endif()
 endif()
 
 add_library(libudunits2
