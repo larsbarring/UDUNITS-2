@@ -272,10 +272,15 @@ CLOCK: one of
         // Length is measured on the INTEGER part (before any decimal point).
         //   len = 1  → H       → 0H0000   decimals are not allowed
         //   len = 2  → HH      → HH0000   decimals are not allowed
-        //   len = 3  → HHM     → HH0M00   decimals are not allowed
+        //   len = 3  → HMM     → 0HMM00   decimals are not allowed
         //   len = 4  → HHMM    → HHMM00   decimals are not allowed
-        //   len = 5  → HHMMS   → HHMM0S   decimals accepted: HHMM0S.dddd...
+        //   len = 5  → HMMSS   → 0HMMSS   decimals accepted: 0HMMSS.dddd...
         //   len = 6  → HHMMSS  → HHMMSS   decimals accepted: HHMMSS.dddd...
+        // NOTE: an odd number of digits pads the HOUR field on the left, so
+        //       "123" is 01:23:00 and "12345" is 01:23:45.  The minute and
+        //       second fields always keep two digits.  These odd-length
+        //       forms are a UDUNITS extension; ISO 8601 basic format has
+        //       only the even-length ones.
 
 <year-broken>:
         [+-]? [0-9]@{1,7@}
@@ -336,8 +341,9 @@ TZ_CLOCK: one of
         // Length-based interpretation after the sign:
         //   total_len(sign excluded) = 1 → H
         //   total_len(sign excluded) = 2 → HH
-        //   total_len(sign excluded) = 3 → HHM, except that a leading zero is
-        //       rejected (e.g., "+053", "-053"); write "+0:53" or "+0053" instead
+        //   total_len(sign excluded) = 3 → HMM (so "+530" is +05:30), except
+        //       that a leading zero is rejected (e.g., "+053", "-053") because
+        //       it would lose the sign; write "+0:53" or "+0053" instead
         //   total_len(sign excluded) = 4 → HHMM
 
 <tz-hour>:
