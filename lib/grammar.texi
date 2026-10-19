@@ -93,6 +93,7 @@ REAL:
 ID: one of
         <id>
         "%"
+        "''"        // two single quotes (ASCII double prime)
         "'"         // single quote
         "\""        // double quote
         U+00B0      // degree sign
