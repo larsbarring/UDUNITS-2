@@ -70,6 +70,7 @@ Units accepted for use with the SI
                 <name><singular>angular_second</singular></name>
                 <name><singular>arcsecond</singular></name>
                 <name><singular>arcsec</singular></name>
+                <symbol comment="ASCII double prime">''</symbol>
             </aliases>
             <definition>measurement of a plane angle equal to 1/60 arc minute</definition>
         </unit>
