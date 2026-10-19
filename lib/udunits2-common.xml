@@ -201,7 +201,10 @@ elements appear only within <aliases>.
     <!-- Plane Angle -->
         <unit>
             <def>0.9 arc_degree</def>
-            <aliases> <name><singular>grade</singular></name> </aliases>
+            <aliases>
+                <name><singular>grade</singular></name>
+                <symbol>gon</symbol>
+            </aliases>
             <definition>1/100 of a right angle (90 degrees)</definition>
         </unit>
         <unit>
