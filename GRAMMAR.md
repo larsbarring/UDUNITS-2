@@ -91,6 +91,7 @@ Here is the unit-syntax understood by the UDUNITS-2 package. Words printed \_Thu
     ID: one of
             <id>
             "%"
+            "''"        // two single quotes (ASCII double prime)
             "'"         // single quote
             "\""        // double quote
             U+00B0      // degree sign
