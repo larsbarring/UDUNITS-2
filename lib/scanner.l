@@ -531,7 +531,7 @@ utf8_2bytes_no_super    \xc2[\x80-\xb0\xb4-\xb5\xba-\xbf]|[\xc8-\xdf]{utf8_cont}
 utf8_3bytes_no_super    [\xe0-\xe1]{utf8_cont}{utf8_cont}|\xe2[\x80\x82-\xbf]{utf8_cont}|\xe2\x81[\x80-\xaf\xbc-\xbf]|[\xe3-\xef]{utf8_cont}{utf8_cont}
 letter  		[_a-zA-Z]|{latin1}|{utf8_2bytes_no_super}|{utf8_3bytes_no_super}
 alphanum		{letter}|[0-9]
-id			%|'|\"|{letter}({alphanum}*{letter})?
+id			%|''|'|\"|{letter}({alphanum}*{letter})?
 packed_date		{year_packed}({month}{day}?)?
 broken_clock		{tod_hour}:{minute}(:{second})?
 packed_clock		{tod_hour}({minute}{second}?)?
