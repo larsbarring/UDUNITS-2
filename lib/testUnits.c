@@ -2277,6 +2277,16 @@ test_xml(void)
     CU_ASSERT_PTR_NOT_NULL(unit2);
     CU_ASSERT_EQUAL(ut_compare(unit1, unit2), 0);
     ut_free(unit2);
+    unit2 = ut_parse(xmlSystem, "''", UT_ASCII);  /* two apostrophes */
+    CU_ASSERT_PTR_NOT_NULL(unit2);
+    CU_ASSERT_EQUAL(ut_compare(unit1, unit2), 0);
+    ut_free(unit2);
+    unit2 = ut_parse(xmlSystem, "''2", UT_ASCII);  /* arc_second squared */
+    CU_ASSERT_PTR_NOT_NULL(unit2);
+    unit = ut_raise(unit1, 2);
+    CU_ASSERT_EQUAL(ut_compare(unit, unit2), 0);
+    ut_free(unit);
+    ut_free(unit2);
     ut_free(unit1);
 
     unit1 = ut_parse(xmlSystem, "ohm", UT_ASCII);
